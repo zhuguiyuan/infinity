@@ -63,32 +63,32 @@ class MovieDao {
     return new PageResult<>(data, total, pageRequest.page(), pageRequest.size());
   }
 
-  SavedMovie save(NewMovie movie) {
-    var r = db.execute(
-        "INSERT INTO movies (title, year) VALUES (?, ?)",
-        ps -> {
-          ps.setString(1, movie.movie().title());
-          ps.setInt(2, movie.movie().year());
-        });
-    return new SavedMovie(r.generatedKey(), movie.movie());
+  SavedMovie save(MovieEntity entity) {
+    return switch (entity) {
+      case NewMovie m -> {
+        var r = db.execute(
+            "INSERT INTO movies (title, year) VALUES (?, ?)",
+            ps -> {
+              ps.setString(1, m.title());
+              ps.setInt(2, m.year());
+            });
+        yield new SavedMovie(r.generatedKey(), m.title(), m.year());
+      }
+      case SavedMovie m -> {
+        db.execute(
+            "UPDATE movies SET title = ?, year = ? WHERE id = ?",
+            ps -> {
+              ps.setString(1, m.title());
+              ps.setInt(2, m.year());
+              ps.setLong(3, m.id());
+            });
+        yield m;
+      }
+    };
   }
 
-  List<SavedMovie> saveAll(List<NewMovie> movies) {
-    return movies.stream().map(this::save).toList();
-  }
-
-  boolean update(SavedMovie movie) {
-    return db.execute(
-        "UPDATE movies SET title = ?, year = ? WHERE id = ?",
-        ps -> {
-          ps.setString(1, movie.movie().title());
-          ps.setInt(2, movie.movie().year());
-          ps.setLong(3, movie.id());
-        }).affectedRows() > 0;
-  }
-
-  int updateAll(List<SavedMovie> movies) {
-    return movies.stream().mapToInt(m -> update(m) ? 1 : 0).sum();
+  List<SavedMovie> saveAll(List<MovieEntity> entities) {
+    return entities.stream().map(this::save).toList();
   }
 
   boolean delete(Long id) {
@@ -112,20 +112,19 @@ class MovieDao {
   }
 
   private SavedMovie mapRow(ResultSet rs) throws SQLException {
-    var movie = new Movie(rs.getString("title"), rs.getInt("year"));
-    return new SavedMovie(rs.getLong("id"), movie);
+    return new SavedMovie(rs.getLong("id"), rs.getString("title"), rs.getInt("year"));
   }
 
   public static void main(String[] args) {
     var dao = new MovieDao();
 
-    var saved = dao.save(new NewMovie(new Movie("你好世界", 2026)));
+    var saved = dao.save(new NewMovie("你好世界", 2026));
     System.out.println("save: id=" + saved.id());
 
     var found = dao.findbyId(saved.id());
     System.out.println("found: " + found);
 
-    var updated = dao.update(new SavedMovie(saved.id(), new Movie("再见世界", 2025)));
+    var updated = dao.save(new SavedMovie(saved.id(), "再见世界", 2025));
     System.out.println("update: " + updated);
 
     var deleted = dao.delete(saved.id());

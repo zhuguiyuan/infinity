@@ -1,14 +1,13 @@
 package movie;
 
-record Movie(
-    String title, int year) {
+sealed interface MovieEntity {
+    String title();
+
+    int year();
 }
 
-record SavedMovie(
-    Long id,
-    Movie movie) {
+record NewMovie(String title, int year) implements MovieEntity {
 }
 
-record NewMovie(
-    Movie movie) {
+record SavedMovie(long id, String title, int year) implements MovieEntity {
 }
