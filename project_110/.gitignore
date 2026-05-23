@@ -1,0 +1,7 @@
+!.vscode/*
+!.gitignore
+!README.md
+!Makefile
+
+!src/**
+!lib/**
