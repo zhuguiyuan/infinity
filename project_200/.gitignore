@@ -1,0 +1,6 @@
+_build/
+
+!*.ml
+!dune
+!dune-project
+!.ocamlformat
